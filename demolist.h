@@ -19,4 +19,6 @@ int Demo_FaceDetect(int argc, char ** argv);
 
 int ImageResize(int argc, char ** argv);
 
+int Demo_Camara(int argc, char ** argv);
+
 #endif /* demolist_h */

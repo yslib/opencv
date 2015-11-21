@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <cstdlib>
+
+#include "diropr.h"
 //#include <string.h>
 
 
@@ -249,7 +251,7 @@ _cleanup_:
 	cout << "Capture end\n";
 	cvReleaseCapture(&cap);
 	waitKey(0);
-
+	return 0;
 }
 
 //************************************
@@ -261,29 +263,51 @@ _cleanup_:
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
+
+//
+//分离字符串
+//
+void MySplit(const string & str, vector<string> & vecStrs,char  spl)
+{
+	string::size_type pos1, pos2;
+	pos2 = str.find(spl);
+	pos1 = 0;
+	while (pos1 != pos2)
+	{
+		vecStrs.push_back(str.substr(pos1, pos2 - pos1));
+
+		pos1 = pos2 + 1;
+		pos2 = str.find(spl, pos1);
+	}
+	vecStrs.push_back(str.substr(pos1));
+}
 int ImageResize(int argc, char ** argv)
 {
-
 	//parse the cmd parameters
-
 	int ch;
 	opterr = 0;
-	string pathIn = "";
-	string pathOut = "";
+	string dirIn = "\\";
+	string dirOut = "\\";
+	string filePath = "";
 	int width=200, height=200;
 	if (argc == 0)
 	{
 		cerr << "需要参数\n";
 		return -1;
 	}
+	int mode = -1;
 	while ((ch = getopt(argc, argv, "i:n:w:h:o:")) != -1)
 	{
 		switch (ch) {
 		case 'i':
-			
+			dirIn = optarg;
+			if (dirIn[dirIn.size() - 1] != '\\')
+				dirIn+="\\";
+			mode = 1;	//批量转换
 			break;
 		case 'n':
-			pathIn = optarg;
+			filePath = optarg;
+			mode = 2;	//单个文件转换
 			break;
 		case 'w':
 			width = atoi(optarg);			
@@ -292,31 +316,118 @@ int ImageResize(int argc, char ** argv)
 			height = atoi(optarg);			
 			break;
 		case 'o':
-			pathOut = optarg;
+			dirOut = optarg;
+			if (dirOut[dirOut.size() - 1] != '\\')
+				dirOut += "\\";
 			break;
 		default:
 			break;
 		}
 	}
-	Mat srcImage = imread(pathIn);
-	cout << pathIn << endl;
-	if (srcImage.empty() == true)
+
+	//得到目录dirIn和文件名filesName
+
+	vector<string> filesName;
+	if (mode == 1)
 	{
-		cerr << "image loaded failed\n";
+		vector<string> ext;
+		ext.push_back("*.png");
+		ext.push_back("*.jpg");
+		GetFilesName(dirIn, filesName,ext);
+		
+	}
+	else if (mode == 2)
+	{
+		vector<string> strs;
+		MySplit(filePath, strs, '\\');
+		filesName.push_back(*(--strs.end()));
+		//构造所在目录
+		dirIn = "";
+		for (string::size_type i = 0; i < strs.size() - 1; i++)
+		{
+			dirIn += strs[i];
+			dirIn += "\\";
+		}
+	}
+	Mat srcImage, outImage;
+	for (vector<string>::iterator itr = filesName.begin(); itr != filesName.end(); ++itr)
+	{
+		srcImage = imread(dirIn+*itr);
+		if (srcImage.empty() == true)
+		{
+			cerr << "file <"<< *itr <<"> loaded failed\n";
+			continue;
+		}
+		resize(srcImage, outImage, Size(width, height), 0, 0, 1);
+		if (imwrite(dirOut + "RSZ_" + *itr, outImage) == false)
+		{
+			cerr << "file " << *itr << " written faild\n";
+		}
+	}
+	return 0;
+}
+//************************************
+// Method:    Demo_Camara
+// FullName:  Demo_Camara
+// Access:    public 
+// Returns:   int
+// Qualifier:
+// Parameter: int argc
+// Parameter: char * * argv
+//************************************
+int Demo_Camara(int argc, char ** argv)
+{
+	CvCapture * capture;
+	if ((capture = cvCreateCameraCapture(0)) == NULL)
+	{
+		printf("Camera Open Fail!Please check your Camera.");
+		//char c=cvWaitKey(33);
 		return -1;
 	}
-	Mat outImage;
+	cvNamedWindow("Camera Show", CV_WINDOW_AUTOSIZE);
+	IplImage * frame;
+	
+	while (1)
+	{
+		frame = cvQueryFrame(capture);
 
-	resize(srcImage, outImage, Size(width, height),0,0,1 );
+		if (!frame)
+			break;
+		cvShowImage("Camera Show", frame);
+		char c = cvWaitKey(33);
+		if (c == 27)
+			break;
 
-
-	imshow("result", outImage);
-	//waitKey(0);
-
-	vector<int> comparessionParams;
-	comparessionParams.push_back(CV_IMWRITE_JPEG_QUALITY);
-	comparessionParams.push_back(95);
-
-	imwrite(pathOut, outImage,comparessionParams);
+	}
+	cvReleaseCapture(&capture);
+	cvDestroyWindow("Camera Show");
+	
 	return 0;
+}
+//int List_Dir(int argc, char ** argv)
+//{
+//	int ch;
+//	opterr = 0;
+//	string path = "C:\\";
+//	string fileType = "";
+//	while ((ch = getopt(argc, argv, "d:t:")) != -1)
+//	{
+//		switch (ch) {
+//		case 'd':
+//			path = optarg;        //the image or video path
+//			break;
+//		default:
+//			break;
+//		}
+//	}
+//	vector<string> filesName;
+//	GetFilesName(path, filesName);
+//	for (vector<string>::iterator itr = filesName.begin(); itr != filesName.end(); ++itr)
+//	{
+//		cout << *itr << endl;
+//	}
+//	return 0;
+int Kmeans(int argc, char ** argv)
+{
+
 }
