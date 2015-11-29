@@ -21,4 +21,6 @@ int ImageResize(int argc, char ** argv);
 
 int Demo_Camara(int argc, char ** argv);
 
+int Demo_Coutours(int argc,char ** argv);
+
 #endif /* demolist_h */

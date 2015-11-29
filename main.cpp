@@ -21,7 +21,8 @@ int main(int argc, const char * argv[])
     MenuConfig("q", "quit from the demo", quit);
     MenuConfig("1", "smooth image demo", Demo_Smooth);
 	MenuConfig("2", "face detect", Demo_FaceDetect);
-	MenuConfig("3", "image resize", ImageResize);
+	//MenuConfig("3", "image resize", ImageResize);
 	MenuConfig("4", "camara", Demo_Camara);
+    MenuConfig("5", "coutours", Demo_Coutours);
     ExecuteMenu();
 }

@@ -15,8 +15,8 @@
    along with this program; if not, write to the Free Software
    Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
-#ifndef _GETOPT_H
-#define _GETOPT_H 1
+#ifndef _UNISTD_H_
+#define _UNISTD_H_ 1
 
 #ifdef	__cplusplus
 extern "C" {

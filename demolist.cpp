@@ -12,7 +12,13 @@
 #include <iostream>
 #include <cstdlib>
 
+#ifdef __windows__
 #include "diropr.h"
+#endif
+
+#ifdef __posix__
+#include <unistd.h>
+#endif
 //#include <string.h>
 
 
@@ -89,8 +95,6 @@ int Demo_Smooth(int argc,char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
-
-
 
 Scalar color;
 Mat smallImgROI;
@@ -333,7 +337,7 @@ int ImageResize(int argc, char ** argv)
 		vector<string> ext;
 		ext.push_back("*.png");
 		ext.push_back("*.jpg");
-		GetFilesName(dirIn, filesName,ext);
+		//GetFilesName(dirIn, filesName,ext);
 		
 	}
 	else if (mode == 2)
@@ -429,5 +433,109 @@ int Demo_Camara(int argc, char ** argv)
 //	return 0;
 int Kmeans(int argc, char ** argv)
 {
+    return 0;
+}
 
+
+int Demo_Coutours(int argc,char ** argv)
+{
+//    Mat input,gray,binary;
+//    
+//    input=imread("test.jpg");
+//    if(input.empty() == true)
+//    {
+//        cerr<<"can not open image\n";
+//        return -1;
+//    }
+//    
+//    
+//    //gray.create(input.rows, input.cols, CV_8UC1);
+//    
+//    
+//    cvtColor(input, gray, CV_BGR2GRAY);
+//    
+//    
+//    threshold(gray, binary, 128, 255, 0);
+//    //imshow("out", binary);
+//    //waitKey(0);
+//    
+//    vector<vector<Point> > coutours;
+//    
+//    findContours(binary, coutours , CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+//    
+//    //Mat result(input.size(),CV_8U,Scalar(255));
+//    
+//    drawContours(input, coutours, -1, Scalar(0),2);
+//    
+//    imshow("result", input);
+    
+   // Mat mat_image;
+    
+    
+    //CvCapture * cap=cvCaptureFromAVI("demo.avi");
+    
+    
+    VideoCapture cam(0);
+    //cam.open("demo.avi");
+    if(cam.isOpened() == false)
+    {
+        cerr<<"can not load vedio\n";
+        return 1;
+    }
+    Mat input;
+    cam>>input;
+    if(input.empty() == true)
+    {
+        cerr<<"can not load the first frame  ------  \n";
+        return -1;
+    }
+    IplImage  _src=input;
+    
+    IplImage * src= &_src;
+    
+    cvNamedWindow("output1");
+    cvNamedWindow("output2");
+    
+    if(src == NULL)
+    {
+        cout<<"can not load the frist frame\n";
+        return -1;
+    }
+    IplImage * gray,* binary;
+    gray = cvCreateImage(cvGetSize(src), src->depth, 1);
+    binary = cvCreateImage(cvGetSize(src), src->depth, CV_THRESH_BINARY);
+    
+    CvMemStorage* storage = cvCreateMemStorage (0);
+    CvScalar external_color=CvScalar(255,255,255);
+    CvScalar hole_color=CvScalar(255,255,255);
+    CvSeq * contour = 0;
+    
+    int contours = 0;
+    while (1) {
+        cam>>input;
+        _src = input;
+        src = &_src;
+        //cvShowImage("output2", src);
+        //cvWaitKey(0);
+        cvCvtColor(src, gray, CV_BGR2GRAY);
+        
+        
+        cvThreshold(gray, binary, 255, 255, 0);
+        
+        contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+        
+//        for (;contour != 0; contour = contour->h_next)
+//        {
+//            cvDrawContours (gray, contour, external_color, hole_color, 1, 2, 8);
+//        }
+        cvShowImage("output1",binary);
+        cvShowImage("output2",gray);
+    }
+    
+    
+    //cvErode(binary, binary);
+    //cvDilate(binary, binary);
+    //cvWaitKey(0);
+    
+    return 0;
 }
