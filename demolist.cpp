@@ -5,7 +5,10 @@
 //  Created by 杨朔柳 on 15/11/10.
 //  Copyright © 2015年 杨朔柳. All rights reserved.
 //
-//#pragma warning(disable:4996)
+
+
+#pragma warning(disable:4996)
+#define __windows__
 
 #include "demolist.h"
 #include <stdio.h>
@@ -19,11 +22,12 @@
 #ifdef __posix__
 #include <unistd.h>
 #endif
-//#include <string.h>
+#include <string.h>
 
 
 //OpenCV for C++
 #include <opencv2/opencv.hpp>		//for all
+
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/objdetect.hpp>
 
@@ -36,7 +40,7 @@
 //#define __cplusplus			
 
 #include "getopt.h"	
-		
+
 
 //
 using namespace std;
@@ -54,25 +58,25 @@ using namespace cv;
 // Parameter: char * * argv
 //************************************
 
-int Demo_Smooth(int argc,char ** argv)
+int Demo_Smooth(int argc, char ** argv)
 {
-    //
-    //parse the cmd parameters
-    //
-    int ch;
-    opterr=0;
+	//
+	//parse the cmd parameters
+	//
+	int ch;
+	opterr = 0;
 	string path;
-    while((ch=getopt(argc, argv, "d:")) != -1)
-    {
-        switch (ch) {
-            case 'd':
-				path = optarg;        //the image or video path
-                break;  
-            default:
-                break;
-        }
-    }
-    //parse ended
+	while ((ch = getopt(argc, argv, "d:")) != -1)
+	{
+		switch (ch) {
+		case 'd':
+			path = optarg;        //the image or video path
+			break;
+		default:
+			break;
+		}
+	}
+	//parse ended
 	//printf("%s\n", path);
 	Mat srcImage = imread(path);
 	if (srcImage.empty())
@@ -80,7 +84,7 @@ int Demo_Smooth(int argc,char ** argv)
 		printf("object read faild\n");
 		return -1;
 	}
-    return 0;
+	return 0;
 }
 
 
@@ -109,7 +113,7 @@ void detectAndDraw(Mat& img, CascadeClassifier& cascade,
 
 	int i = 0;
 	double t = 0;
-	
+
 	const static Scalar colors[] = { CV_RGB(0,0,255),
 		CV_RGB(0,128,255),
 		CV_RGB(0,255,255),
@@ -183,12 +187,12 @@ void detectAndDraw(Mat& img, CascadeClassifier& cascade,
 }
 int Demo_FaceDetect(int argc, char ** argv)
 {
-	
+
 	//parse the cmd parameters
-	
+
 	int ch;
 	opterr = 0;
-	string path="C:\\haar\\demo.avi";
+	string path = "C:\\haar\\demo.avi";
 	const string nestedCascadeName = "C:\\haar\\haarcascade_eye_tree_eyeglasses.xml";
 	const string cascadeName = "C:\\haar\\haarcascade_frontalface_alt.xml";
 	int Mode = 0;
@@ -207,7 +211,7 @@ int Demo_FaceDetect(int argc, char ** argv)
 		}
 	}
 
-	CvCapture * cap=NULL;
+	CvCapture * cap = NULL;
 	CascadeClassifier cascade, nestedCascade;
 
 	if (!nestedCascade.load(nestedCascadeName))
@@ -250,7 +254,7 @@ int Demo_FaceDetect(int argc, char ** argv)
 		if (waitKey(10) >= 0)
 			goto _cleanup_;
 	}
-	
+
 _cleanup_:
 	cout << "Capture end\n";
 	cvReleaseCapture(&cap);
@@ -271,7 +275,7 @@ _cleanup_:
 //
 //分离字符串
 //
-void MySplit(const string & str, vector<string> & vecStrs,char  spl)
+void MySplit(const string & str, vector<string> & vecStrs, char  spl)
 {
 	string::size_type pos1, pos2;
 	pos2 = str.find(spl);
@@ -293,7 +297,7 @@ int ImageResize(int argc, char ** argv)
 	string dirIn = "\\";
 	string dirOut = "\\";
 	string filePath = "";
-	int width=200, height=200;
+	int width = 200, height = 200;
 	if (argc == 0)
 	{
 		cerr << "需要参数\n";
@@ -306,7 +310,7 @@ int ImageResize(int argc, char ** argv)
 		case 'i':
 			dirIn = optarg;
 			if (dirIn[dirIn.size() - 1] != '\\')
-				dirIn+="\\";
+				dirIn += "\\";
 			mode = 1;	//批量转换
 			break;
 		case 'n':
@@ -314,10 +318,10 @@ int ImageResize(int argc, char ** argv)
 			mode = 2;	//单个文件转换
 			break;
 		case 'w':
-			width = atoi(optarg);			
+			width = atoi(optarg);
 			break;
 		case 'h':
-			height = atoi(optarg);			
+			height = atoi(optarg);
 			break;
 		case 'o':
 			dirOut = optarg;
@@ -338,7 +342,7 @@ int ImageResize(int argc, char ** argv)
 		ext.push_back("*.png");
 		ext.push_back("*.jpg");
 		//GetFilesName(dirIn, filesName,ext);
-		
+
 	}
 	else if (mode == 2)
 	{
@@ -356,10 +360,10 @@ int ImageResize(int argc, char ** argv)
 	Mat srcImage, outImage;
 	for (vector<string>::iterator itr = filesName.begin(); itr != filesName.end(); ++itr)
 	{
-		srcImage = imread(dirIn+*itr);
+		srcImage = imread(dirIn + *itr);
 		if (srcImage.empty() == true)
 		{
-			cerr << "file <"<< *itr <<"> loaded failed\n";
+			cerr << "file <" << *itr << "> loaded failed\n";
 			continue;
 		}
 		resize(srcImage, outImage, Size(width, height), 0, 0, 1);
@@ -390,7 +394,7 @@ int Demo_Camara(int argc, char ** argv)
 	}
 	cvNamedWindow("Camera Show", CV_WINDOW_AUTOSIZE);
 	IplImage * frame;
-	
+
 	while (1)
 	{
 		frame = cvQueryFrame(capture);
@@ -405,7 +409,7 @@ int Demo_Camara(int argc, char ** argv)
 	}
 	cvReleaseCapture(&capture);
 	cvDestroyWindow("Camera Show");
-	
+
 	return 0;
 }
 //int List_Dir(int argc, char ** argv)
@@ -433,109 +437,94 @@ int Demo_Camara(int argc, char ** argv)
 //	return 0;
 int Kmeans(int argc, char ** argv)
 {
-    return 0;
+	return 0;
 }
 
 
-int Demo_Coutours(int argc,char ** argv)
+//************************************
+// Method:    Demo_Coutours
+// FullName:  Demo_Coutours
+// Access:    public 
+// Returns:   int
+// Qualifier:
+// Parameter: int argc
+// Parameter: char * * argv
+//************************************
+inline int GetColorDistance(int b, int g, int r, int b0, int g0, int r0)
 {
-//    Mat input,gray,binary;
-//    
-//    input=imread("test.jpg");
-//    if(input.empty() == true)
-//    {
-//        cerr<<"can not open image\n";
-//        return -1;
-//    }
-//    
-//    
-//    //gray.create(input.rows, input.cols, CV_8UC1);
-//    
-//    
-//    cvtColor(input, gray, CV_BGR2GRAY);
-//    
-//    
-//    threshold(gray, binary, 128, 255, 0);
-//    //imshow("out", binary);
-//    //waitKey(0);
-//    
-//    vector<vector<Point> > coutours;
-//    
-//    findContours(binary, coutours , CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-//    
-//    //Mat result(input.size(),CV_8U,Scalar(255));
-//    
-//    drawContours(input, coutours, -1, Scalar(0),2);
-//    
-//    imshow("result", input);
-    
-   // Mat mat_image;
-    
-    
-    //CvCapture * cap=cvCaptureFromAVI("demo.avi");
-    
-    
-    VideoCapture cam(0);
-    //cam.open("demo.avi");
-    if(cam.isOpened() == false)
-    {
-        cerr<<"can not load vedio\n";
-        return 1;
-    }
-    Mat input;
-    cam>>input;
-    if(input.empty() == true)
-    {
-        cerr<<"can not load the first frame  ------  \n";
-        return -1;
-    }
-    IplImage  _src=input;
-    
-    IplImage * src= &_src;
-    
-    cvNamedWindow("output1");
-    cvNamedWindow("output2");
-    
-    if(src == NULL)
-    {
-        cout<<"can not load the frist frame\n";
-        return -1;
-    }
-    IplImage * gray,* binary;
-    gray = cvCreateImage(cvGetSize(src), src->depth, 1);
-    binary = cvCreateImage(cvGetSize(src), src->depth, CV_THRESH_BINARY);
-    
-    CvMemStorage* storage = cvCreateMemStorage (0);
-    CvScalar external_color=CvScalar(255,255,255);
-    CvScalar hole_color=CvScalar(255,255,255);
-    CvSeq * contour = 0;
-    
-    int contours = 0;
-    while (1) {
-        cam>>input;
-        _src = input;
-        src = &_src;
-        //cvShowImage("output2", src);
-        //cvWaitKey(0);
-        cvCvtColor(src, gray, CV_BGR2GRAY);
-        
-        
-        cvThreshold(gray, binary, 255, 255, 0);
-        
-        contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-        
-//        for (;contour != 0; contour = contour->h_next)
-//        {
-//            cvDrawContours (gray, contour, external_color, hole_color, 1, 2, 8);
-//        }
-        cvShowImage("output1",binary);
-        cvShowImage("output2",gray);
-    }
-    
-    
-    //cvErode(binary, binary);
-    //cvDilate(binary, binary);
-    //cvWaitKey(0);
-    
-    return 0;
+	return (b - b0 > 0 ? b - b0 : b0 - b) + (g - g0 > 0 ? g - g0 : g0 - g) + (r - r0 > 0 ? r - r0 : r0 - r);
+}
+void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0,int g0,int r0)
+{
+	char * data = _src->imageData;
+	char * b, *g, *r;
+	for (int i = 0; i < _src->height; i++)
+	{
+		for (int j = 0; j < _src->width; j++)
+		{
+			b = data + i*_src->widthStep + j*_src->nChannels;
+			g = data + i*_src->widthStep + j*_src->nChannels+1;
+			r = data + i*_src->widthStep + j*_src->nChannels+2;
+			
+			if (GetColorDistance(*b, *g, *r, b0, g0, r0) < threshold)
+			{
+				*(_binary->imageData + i*_binary->widthStep + j*_binary->nChannels) = 255;
+			}
+			else
+			{
+				*(_binary->imageData + i*_binary->widthStep + j*_binary->nChannels) = 0;
+			}
+		}
+	}
+}
+int Demo_Coutours(int argc, char ** argv)
+{
+	CvCapture * cap;
+	IplImage * input;
+	cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
+	if (cap == NULL)
+	{
+		cerr << "can not load video\n";
+		return 1;
+	}
+	input = cvQueryFrame(cap);
+	if (input == NULL)
+	{
+		cerr << "can not load the first frame\n";
+		return -1;
+	}
+
+	cvNamedWindow("output1");
+	cvNamedWindow("output2");
+
+	IplImage * gray, *binary;
+
+	gray = cvCreateImage(cvGetSize(input), input->depth, 1);
+	binary = cvCreateImage(cvGetSize(input), input->depth, CV_THRESH_BINARY);
+
+	//CvMemStorage* storage = cvCreateMemStorage(0);
+	//CvSeq * contour = 0;
+
+	int contours = 0;
+	while (1) {
+
+		input = cvQueryFrame(cap);
+		//cvCvtColor(input, gray, CV_BGR2GRAY);
+		//cvThreshold(gray, binary, 128, 255, 0);
+		//contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+		//for (; contour != 0; contour = contour->h_next)
+		//{
+		//	cvDrawContours(gray, contour, cvScalarAll(255), cvScalarAll(255), 1, 2, 8);
+		//}
+		ColorThreshold(input, binary, 200, 175,118,66);
+		waitKey(33);
+		cvShowImage("output1", binary);
+		cvShowImage("output2", input);
+	}
+
+	cvReleaseCapture(&cap);
+	cvDestroyWindow("output1");
+	cvDestroyWindow("output2");
+
+	return 0;
 }
