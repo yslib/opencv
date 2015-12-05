@@ -24,5 +24,8 @@ int main(int argc, const char * argv[])
 	//MenuConfig("3", "image resize", ImageResize);
 	MenuConfig("4", "camara", Demo_Camara);
     MenuConfig("5", "coutours", Demo_Coutours);
+	MenuConfig("6", "colordetect", Demo_ColorDetect);
+	MenuConfig("7", "Convolution", Demo_Convolution);
+	MenuConfig("8", "HSV", Divide_HSV);
     ExecuteMenu();
 }

@@ -26,10 +26,17 @@
 
 
 //OpenCV for C++
+#include "BaseCls.h"
 #include <opencv2/opencv.hpp>		//for all
+#include <opencv2/ml/ml.hpp>
 
-#include <opencv2/features2d/features2d.hpp>
-#include <opencv2/objdetect.hpp>
+
+#include "cv.h"  
+#include "highgui.h"  
+#include "cxcore.h"  
+#include <ml.h>  
+//#include <opencv2/features2d/features2d.hpp>
+//#include <opencv2/objdetect.hpp>
 
 //#include <opencv2/core/core.hpp>
 //#include <opencv2/highgui.hpp>
@@ -99,97 +106,125 @@ int Demo_Smooth(int argc, char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
-
-Scalar color;
-Mat smallImgROI;
-vector<Rect> faces;
-vector<Rect> nestedObjects;
-Point center;
-void detectAndDraw(Mat& img, CascadeClassifier& cascade,
-	CascadeClassifier& nestedCascade,
-	double scale, bool tryflip)
+class FaceDetect :public VideoProcessor
 {
+private:
 
+	Scalar color;
+	Mat smallImgROI;
+	vector<Rect> faces;			//脸的位置
+	vector<Rect> nestedObjects;		//五官的位置
+	Point center;			//中心坐标
+	CascadeClassifier nestedCascade;
+	CascadeClassifier cascade;
+	Mat frame;
+	FaceDetect() {}
 
-	int i = 0;
-	double t = 0;
+public:
+	FaceDetect(const string & _nestedCascadeName, const string & _cascadeName, const string & fileName) :VideoProcessor(fileName) {
+		if (!nestedCascade.load(_nestedCascadeName))
+		{
+			cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
+		}
 
-	const static Scalar colors[] = { CV_RGB(0,0,255),
-		CV_RGB(0,128,255),
-		CV_RGB(0,255,255),
-		CV_RGB(0,255,0),
-		CV_RGB(255,128,0),
-		CV_RGB(255,255,0),
-		CV_RGB(255,0,0),
-		CV_RGB(255,0,255) };
-	Mat gray, smallImg(cvRound(img.rows / scale), cvRound(img.cols / scale), CV_8UC1);
-
-	cvtColor(img, gray, COLOR_BGR2GRAY);
-	resize(gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR);
-	equalizeHist(smallImg, smallImg);
-
-	t = (double)cvGetTickCount();
-	cascade.detectMultiScale(smallImg, faces,
-		1.1, 2, 0
-		//|CASCADE_FIND_BIGGEST_OBJECT
-		//|CASCADE_DO_ROUGH_SEARCH
-		| CASCADE_SCALE_IMAGE
-		,
-		Size(30, 30));
-	//if (tryflip)
-	//{
-	//	flip(smallImg, smallImg, 1);
-	//	cascade.detectMultiScale(smallImg, faces2,
-	//		1.1, 2, 0
-	//		//|CASCADE_FIND_BIGGEST_OBJECT
-	//		//|CASCADE_DO_ROUGH_SEARCH
-	//		| CASCADE_SCALE_IMAGE
-	//		,
-	//		Size(30, 30));
-	//	for (vector<Rect>::const_iterator r = faces2.begin(); r != faces2.end(); r++)
-	//	{
-	//		faces.push_back(Rect(smallImg.cols - r->x - r->width, r->y, r->width, r->height));
-	//	}
-	//}
-	t = (double)cvGetTickCount() - t;
-	printf("detection time = %g ms\n", t / ((double)cvGetTickFrequency()*1000.));
-
-	for (vector<Rect>::const_iterator r = faces.begin(); r != faces.end(); ++r, i++)
+		if (!cascade.load(_cascadeName))
+		{
+			cerr << "ERROR: Could not load classifier cascade" << endl;
+		}
+	}
+	void detectAndDraw(Mat& img,
+		double scale, bool tryflip)
 	{
-		color = CV_RGB(0, 0, 255);
-		int radius;
-		center.x = cvRound((r->x + r->width*0.5)*scale);
-		center.y = cvRound((r->y + r->height*0.5)*scale);
-		radius = cvRound((r->width + r->height)*0.25*scale);
-		circle(img, center, radius, color, 3, 8, 0);
 
-		if (nestedCascade.empty())
-			continue;
-		smallImgROI = smallImg(*r);
-		nestedCascade.detectMultiScale(smallImgROI, nestedObjects,
+
+		int i = 0;
+		double t = 0;
+
+		const static Scalar colors[] = { CV_RGB(0,0,255),
+			CV_RGB(0,128,255),
+			CV_RGB(0,255,255),
+			CV_RGB(0,255,0),
+			CV_RGB(255,128,0),
+			CV_RGB(255,255,0),
+			CV_RGB(255,0,0),
+			CV_RGB(255,0,255) };
+		Mat gray, smallImg(cvRound(img.rows / scale), cvRound(img.cols / scale), CV_8UC1);
+
+		cvtColor(img, gray, COLOR_BGR2GRAY);
+		resize(gray, smallImg, smallImg.size(), 0, 0, INTER_LINEAR);
+		equalizeHist(smallImg, smallImg);
+
+		t = (double)cvGetTickCount();
+		cascade.detectMultiScale(smallImg, faces,
 			1.1, 2, 0
 			//|CASCADE_FIND_BIGGEST_OBJECT
 			//|CASCADE_DO_ROUGH_SEARCH
-			//|CASCADE_DO_CANNY_PRUNING
 			| CASCADE_SCALE_IMAGE
 			,
 			Size(30, 30));
-		for (vector<Rect>::const_iterator nr = nestedObjects.begin(); nr != nestedObjects.end(); ++nr)
-		{
-			center.x = cvRound((r->x + nr->x + nr->width*0.5)*scale);
-			center.y = cvRound((r->y + nr->y + nr->height*0.5)*scale);
-			radius = cvRound((nr->width + nr->height)*0.25*scale);
-			circle(img, center, radius, color, 3, 8, 0);
-		}
+		//if (tryflip)
+		//{
+		//	flip(smallImg, smallImg, 1);
+		//	cascade.detectMultiScale(smallImg, faces2,
+		//		1.1, 2, 0
+		//		//|CASCADE_FIND_BIGGEST_OBJECT
+		//		//|CASCADE_DO_ROUGH_SEARCH
+		//		| CASCADE_SCALE_IMAGE
+		//		,
+		//		Size(30, 30));
+		//	for (vector<Rect>::const_iterator r = faces2.begin(); r != faces2.end(); r++)
+		//	{
+		//		faces.push_back(Rect(smallImg.cols - r->x - r->width, r->y, r->width, r->height));
+		//	}
+		//}
+		t = (double)cvGetTickCount() - t;
+		printf("detection time = %g ms\n", t / ((double)cvGetTickFrequency()*1000.));
 
+		for (vector<Rect>::const_iterator r = faces.begin(); r != faces.end(); ++r, i++)
+		{
+			color = CV_RGB(0, 0, 255);
+			int radius;
+			center.x = cvRound((r->x + r->width*0.5)*scale);
+			center.y = cvRound((r->y + r->height*0.5)*scale);
+			radius = cvRound((r->width + r->height)*0.25*scale);
+			circle(img, center, radius, color, 3, 8, 0);
+
+			if (nestedCascade.empty())
+				continue;
+			smallImgROI = smallImg(*r);
+			nestedCascade.detectMultiScale(smallImgROI, nestedObjects,
+				1.1, 2, 0
+				//|CASCADE_FIND_BIGGEST_OBJECT
+				//|CASCADE_DO_ROUGH_SEARCH
+				//|CASCADE_DO_CANNY_PRUNING
+				| CASCADE_SCALE_IMAGE
+				,
+				Size(30, 30));
+			for (vector<Rect>::const_iterator nr = nestedObjects.begin(); nr != nestedObjects.end(); ++nr)
+			{
+				center.x = cvRound((r->x + nr->x + nr->width*0.5)*scale);
+				center.y = cvRound((r->y + nr->y + nr->height*0.5)*scale);
+				radius = cvRound((nr->width + nr->height)*0.25*scale);
+				circle(img, center, radius, color, 3, 8, 0);
+			}
+
+		}
+		cv::imshow("result", img);
 	}
-	cv::imshow("result", img);
-}
+	void Process()
+	{
+		while (1)
+		{
+			frame = cvarrToMat(cvQueryFrame(_cvCap));
+			detectAndDraw(frame, 1, false);
+		}
+	}
+	void Display()const {}
+
+};
 int Demo_FaceDetect(int argc, char ** argv)
 {
-
 	//parse the cmd parameters
-
 	int ch;
 	opterr = 0;
 	string path = "C:\\haar\\demo.avi";
@@ -210,55 +245,8 @@ int Demo_FaceDetect(int argc, char ** argv)
 			break;
 		}
 	}
-
-	CvCapture * cap = NULL;
-	CascadeClassifier cascade, nestedCascade;
-
-	if (!nestedCascade.load(nestedCascadeName))
-	{
-		cerr << "WARNING: Could not load classifier cascade for nested objects" << endl;
-		return -1;
-	}
-
-	if (!cascade.load(cascadeName))
-	{
-		cerr << "ERROR: Could not load classifier cascade" << endl;
-		return -1;
-	}
-	if (Mode == 0)
-	{
-		cap = cvCaptureFromAVI(path.c_str());
-	}
-	else if (Mode == 1)
-	{
-		cap = cvCaptureFromCAM(0);
-	}
-	if (cap == NULL)
-	{
-		cerr << "Capture from deveice or file failed.\n";
-		return -1;
-	}
-
-	cout << "In capture...\n";
-	IplImage * image = cvQueryFrame(cap);
-	Mat frame;
-	for (;;)
-	{
-		image = cvQueryFrame(cap);
-		frame = cv::cvarrToMat(image);
-		if (frame.empty())
-		{
-			break;
-		}
-		detectAndDraw(frame, cascade, nestedCascade, 1, false);
-		if (waitKey(10) >= 0)
-			goto _cleanup_;
-	}
-
-_cleanup_:
-	cout << "Capture end\n";
-	cvReleaseCapture(&cap);
-	waitKey(0);
+	FaceDetect objFaceDetect(nestedCascadeName, cascadeName, path);
+	objFaceDetect.Process();
 	return 0;
 }
 
@@ -385,31 +373,6 @@ int ImageResize(int argc, char ** argv)
 //************************************
 int Demo_Camara(int argc, char ** argv)
 {
-	CvCapture * capture;
-	if ((capture = cvCreateCameraCapture(0)) == NULL)
-	{
-		printf("Camera Open Fail!Please check your Camera.");
-		//char c=cvWaitKey(33);
-		return -1;
-	}
-	cvNamedWindow("Camera Show", CV_WINDOW_AUTOSIZE);
-	IplImage * frame;
-
-	while (1)
-	{
-		frame = cvQueryFrame(capture);
-
-		if (!frame)
-			break;
-		cvShowImage("Camera Show", frame);
-		char c = cvWaitKey(33);
-		if (c == 27)
-			break;
-
-	}
-	cvReleaseCapture(&capture);
-	cvDestroyWindow("Camera Show");
-
 	return 0;
 }
 //int List_Dir(int argc, char ** argv)
@@ -450,11 +413,76 @@ int Kmeans(int argc, char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
+
+
+int Demo_Coutours(int argc, char ** argv)
+{
+	//CvCapture * cap;
+	//IplImage * input;
+	//cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
+	//if (cap == NULL)
+	//{
+	//	cerr << "can not load video\n";
+	//	return 1;
+	//}
+	//input = cvQueryFrame(cap);
+	//if (input == NULL)
+	//{
+	//	cerr << "can not load the first frame\n";
+	//	return -1;
+	//}
+
+	//cvNamedWindow("output1");
+	//cvNamedWindow("output2");
+
+	//IplImage * gray, *binary;
+
+	////CvMemStorage* storage = cvCreateMemStorage(0);
+	////CvSeq * contour = 0;
+
+	//int contours = 0;
+	//while (1)
+	//{
+	//	input = cvQueryFrame(cap);
+	//	//cvCvtColor(input, gray, CV_BGR2GRAY);
+	//	//cvThreshold(gray, binary, 128, 255, 0);
+	//	//contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+	//	//for (; contour != 0; contour = contour->h_next)
+	//	//{
+	//	//	cvDrawContours(gray, contour, cvScalarAll(255), cvScalarAll(255), 1, 2, 8);
+	//	//}
+	//	ColorThreshold(input, binary, 200, 175,118,66);
+	//	waitKey(33);
+	//	cvShowImage("output1", binary);
+	//	cvShowImage("output2", input);
+	//}
+	//cvReleaseCapture(&cap);
+	//cvDestroyWindow("output1");
+	//cvDestroyWindow("output2");
+
+	return 0;
+}
+//************************************
+// Method:    Demo_ColorDetect
+// FullName:  Demo_ColorDetect
+// Access:    public 
+// Returns:   int
+// Qualifier:
+// Parameter: int argc
+// Parameter: char * * argv
+//************************************
+int R;
+int G;
+int B;
+int dist;
+int _b, _g, _r, _d;
+IplImage * input, *binary, *gray;
+
 inline int GetColorDistance(int b, int g, int r, int b0, int g0, int r0)
 {
 	return (b - b0 > 0 ? b - b0 : b0 - b) + (g - g0 > 0 ? g - g0 : g0 - g) + (r - r0 > 0 ? r - r0 : r0 - r);
 }
-void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0,int g0,int r0)
+void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0, int g0, int r0)
 {
 	char * data = _src->imageData;
 	char * b, *g, *r;
@@ -463,9 +491,9 @@ void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0,i
 		for (int j = 0; j < _src->width; j++)
 		{
 			b = data + i*_src->widthStep + j*_src->nChannels;
-			g = data + i*_src->widthStep + j*_src->nChannels+1;
-			r = data + i*_src->widthStep + j*_src->nChannels+2;
-			
+			g = data + i*_src->widthStep + j*_src->nChannels + 1;
+			r = data + i*_src->widthStep + j*_src->nChannels + 2;
+
 			if (GetColorDistance(*b, *g, *r, b0, g0, r0) < threshold)
 			{
 				*(_binary->imageData + i*_binary->widthStep + j*_binary->nChannels) = 255;
@@ -477,54 +505,315 @@ void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0,i
 		}
 	}
 }
-int Demo_Coutours(int argc, char ** argv)
+
+void update()
 {
-	CvCapture * cap;
-	IplImage * input;
-	cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
-	if (cap == NULL)
-	{
-		cerr << "can not load video\n";
-		return 1;
-	}
-	input = cvQueryFrame(cap);
-	if (input == NULL)
-	{
-		cerr << "can not load the first frame\n";
-		return -1;
-	}
-
-	cvNamedWindow("output1");
-	cvNamedWindow("output2");
-
-	IplImage * gray, *binary;
+	ColorThreshold(input, binary, dist, B, G, R);
+	cvShowImage("output", binary);
+	cvWaitKey(0);
+}
+void OnTrackBar_Blue(int pos)
+{
+	B = pos;
+	update();
+}
+void OnTrackBar_Green(int pos)
+{
+	G = pos;
+	update();
+}
+void OnTrackBar_Red(int pos)
+{
+	R = pos;
+	update();
+}
+void OnTrackBar_Distance(int pos)
+{
+	dist = pos;
+	update();
+}
+int Demo_ColorDetect(int argc, char ** argv)
+{
+	CvCapture * _cvCap = cvCaptureFromAVI("test1.avi");
 
 	gray = cvCreateImage(cvGetSize(input), input->depth, 1);
 	binary = cvCreateImage(cvGetSize(input), input->depth, CV_THRESH_BINARY);
+	cvNamedWindow("output");
+	cvCreateTrackbar("B", "output", &_b, 255, OnTrackBar_Blue);
+	cvCreateTrackbar("G", "output", &_g, 255, OnTrackBar_Green);
+	cvCreateTrackbar("R", "output", &_r, 255, OnTrackBar_Red);
+	cvCreateTrackbar("D", "output", &_d, 255, OnTrackBar_Distance);
 
-	//CvMemStorage* storage = cvCreateMemStorage(0);
-	//CvSeq * contour = 0;
-
-	int contours = 0;
-	while (1) {
-
-		input = cvQueryFrame(cap);
-		//cvCvtColor(input, gray, CV_BGR2GRAY);
-		//cvThreshold(gray, binary, 128, 255, 0);
-		//contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-		//for (; contour != 0; contour = contour->h_next)
-		//{
-		//	cvDrawContours(gray, contour, cvScalarAll(255), cvScalarAll(255), 1, 2, 8);
-		//}
-		ColorThreshold(input, binary, 200, 175,118,66);
-		waitKey(33);
-		cvShowImage("output1", binary);
-		cvShowImage("output2", input);
+	input = cvQueryFrame(_cvCap);
+	while (input != NULL)
+	{
+		ColorThreshold(input, binary, dist, B, G, R);
+		cvShowImage("output", binary);
 	}
 
-	cvReleaseCapture(&cap);
-	cvDestroyWindow("output1");
-	cvDestroyWindow("output2");
+	cvReleaseImage(&input);
+	cvReleaseImage(&gray);
+	cvReleaseImage(&binary);
+	cvDestroyWindow("output");
 
 	return 0;
+}
+//************************************
+// Method:    Demo_Convolution
+// FullName:  Demo_Convolution
+// Access:    public 
+// Returns:   int
+// Qualifier:
+// Parameter: int argc
+// Parameter: char * * argv
+//************************************
+void Convolution(unsigned char * _ArrIn, unsigned char * _ArrOut, int _width, int _height, int _nChannal, unsigned char * _Knl, int _knlSize = 9)
+{
+	//归一化卷积核3*3
+	float  * normalize = (float *)malloc(_knlSize*sizeof(float));
+	float sum = 0.0;
+	for (int i = 0; i < _knlSize; i++)
+	{
+		sum += *(_Knl + i);
+	}
+	for (int i = 0; i < _knlSize; i++)
+	{
+		*(normalize + i) = ((float)*(_Knl + i)) / sum;
+	}
+	int _center_x, _center_y, _KnlWidth;
+	int widthSteps = _width*_nChannal;
+	switch (_knlSize)
+	{
+	case 9:
+		_center_y = 1,
+			_center_x = 1;
+		_KnlWidth = 3;
+		break;
+	default:
+		break;
+	}
+	//处理每个通道
+	for (int c = 0; c < 0; c++)
+	{
+		//处理上边界
+		//处理(0,0)
+		*(_ArrOut + 0 + 0 + c) = (*(_ArrIn + 0 * widthSteps + 0 * _nChannal + c))*(*(normalize + 4)) +
+			(*(_ArrIn + 0 * widthSteps + 1 * _nChannal + c))*(*(normalize + 3)) +
+			(*(_ArrIn + 1 * widthSteps + 0 * _nChannal + c))*(*(normalize + 1)) +
+			(*(_ArrIn + 1 * widthSteps + 1 * _nChannal + c))*(*(normalize + 0));
+		//处理(0,1)---->(0,width-1)
+		for (int i = 1; i < _width - 1; i++)
+		{
+			*(_ArrOut + i*_nChannal + c) = (*(_ArrIn + 0 + i * _nChannal + c))*(*(normalize + 4)) +
+				(*(_ArrIn + (0 - 0)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 5)) +
+				(*(_ArrIn + (0 + 0)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 3)) +
+				(*(_ArrIn + (0 + 1)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 2)) +
+				(*(_ArrIn + (0 + 1)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 1)) +
+				(*(_ArrIn + (0 + 1)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 0));
+		}
+		//处理(0,width)
+		*(_ArrOut + 0 + (_width - 1) * _nChannal + c) = (*(_ArrIn + 0 * widthSteps + (_width - 1) * _nChannal + c))*(*(normalize + 4)) +
+			(*(_ArrIn + 0 * widthSteps + (_width - 2) * _nChannal + c))*(*(normalize + 5)) +
+			(*(_ArrIn + 1 * widthSteps + (_width - 1) * _nChannal + c))*(*(normalize + 1)) +
+			(*(_ArrIn + 1 * widthSteps + (_width - 2) * _nChannal + c))*(*(normalize + 2));
+		//处理内部
+		for (int j = 1; j < _height - 1; j++)
+		{
+			int i = 0;
+			//(j,0)
+			*(_ArrOut + (j + 0)*widthSteps + 0 + c) = (*(_ArrIn + (j + 0) * widthSteps + 0 * _nChannal + c))*(*(normalize + 4)) +
+				(*(_ArrIn + (j + 0) * widthSteps + 1 * _nChannal + c))*(*(normalize + 3)) +
+				(*(_ArrIn + (j + 1) * widthSteps + 0 * _nChannal + c))*(*(normalize + 1)) +
+				(*(_ArrIn + (j + 1) * widthSteps + 1 * _nChannal + c))*(*(normalize + 0)) +
+				(*(_ArrIn + (j - 1) * widthSteps + 0 * _nChannal + c))*(*(normalize + 7)) +
+				(*(_ArrIn + (j - 1) * widthSteps + 1 * _nChannal + c))*(*(normalize + 6));
+
+			for (++i; i < _width - 1; i++)
+			{
+				*(_ArrOut + (j + 0)*widthSteps + (i + 0) * _nChannal + c) = (*(_ArrIn + (j + 0)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 4)) +
+					(*(_ArrIn + (j - 1)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 8)) +
+					(*(_ArrIn + (j - 1)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 7)) +
+					(*(_ArrIn + (j - 1)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 6)) +
+					(*(_ArrIn + (j + 0)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 5)) +
+					(*(_ArrIn + (j + 0)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 3)) +
+					(*(_ArrIn + (j + 1)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 2)) +
+					(*(_ArrIn + (j + 1)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 1)) +
+					(*(_ArrIn + (j + 1)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 0));
+			}
+			//(j,width-1)
+			*(_ArrOut + j*widthSteps + (_width - 1) * _nChannal + c) = (*(_ArrIn + (j + 0) * widthSteps + (_width - 1) * _nChannal + c))*(*(normalize + 4)) +
+				(*(_ArrIn + (j + 0) * widthSteps + (_width - 2) * _nChannal + c))*(*(normalize + 5)) +
+				(*(_ArrIn + (j + 1) * widthSteps + (_width - 1) * _nChannal + c))*(*(normalize + 1)) +
+				(*(_ArrIn + (j + 1) * widthSteps + (_width - 2) * _nChannal + c))*(*(normalize + 2)) +
+				(*(_ArrIn + (j - 1) * widthSteps + (_width - 1) * _nChannal + c))*(*(normalize + 7)) +
+				(*(_ArrIn + (j - 1) * widthSteps + (_width - 2) * _nChannal + c))*(*(normalize + 8));
+
+		}
+		//处理下边界
+
+		*(_ArrOut + (_height - 1)*widthSteps + 0 + c) = (*(_ArrIn + (_height - 1) * widthSteps + 0 * _nChannal + c))*(*(normalize + 4)) +
+			(*(_ArrIn + (_height - 1) * widthSteps + 1 * _nChannal + c))*(*(normalize + 3)) +
+			(*(_ArrIn + (_height - 2) * widthSteps + 0 * _nChannal + c))*(*(normalize + 7)) +
+			(*(_ArrIn + (_height - 2) * widthSteps + 1 * _nChannal + c))*(*(normalize + 6));
+		//处理(0,1)---->(0,width-1)
+		for (int i = 1; i < _width - 1; i++)
+		{
+			*(_ArrOut + (_height - 1)*widthSteps + (i + 0) * _nChannal + c) = (*(_ArrIn + (_height - 1)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 4)) +
+				(*(_ArrIn + (_height - 1)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 5)) +
+				(*(_ArrIn + (_height - 1)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 3)) +
+				(*(_ArrIn + (_height - 2)*widthSteps + (i - 1) * _nChannal + c))*(*(normalize + 8)) +
+				(*(_ArrIn + (_height - 2)*widthSteps + (i + 0) * _nChannal + c))*(*(normalize + 7)) +
+				(*(_ArrIn + (_height - 2)*widthSteps + (i + 1) * _nChannal + c))*(*(normalize + 6));
+		}
+		//处理(height,width)
+		*(_ArrOut + (_height - 1)*widthSteps + (_width - 1)*_nChannal + c) = (*(_ArrIn + (_height - 1) * widthSteps + (_width - 1)*_nChannal + c))*(*(normalize + 4)) +
+			(*(_ArrIn + (_height - 1) * widthSteps + (_width - 2)*_nChannal + c))*(*(normalize + 5)) +
+			(*(_ArrIn + (_height - 2) * widthSteps + (_width - 1)*_nChannal + c))*(*(normalize + 7)) +
+			(*(_ArrIn + (_height - 2) * widthSteps + (_width - 2)*_nChannal + c))*(*(normalize + 8));
+	}
+	free(normalize);
+}
+
+int Demo_Convolution(int argc, char ** argv)
+{
+	IplImage * input = cvLoadImage("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\testimg.jpg");
+	IplImage * output = cvCreateImage(cvGetSize(input), 8, 3);
+	IplImage * output2 = cvCreateImage(cvGetSize(input), 8, 3);
+	unsigned char krnl[] = { 1,2,1,2,4,2,1,2,1 };
+	Convolution((unsigned char *)input->imageData, (unsigned char *)output->imageData, input->width, input->height, 3, krnl, 9);
+	cvSmooth(input, output2, CV_GAUSSIAN, 3, 3, 0, 0);
+	cvNamedWindow("src");
+	cvNamedWindow("dst");
+	cvNamedWindow("dst2");
+	cvShowImage("src", input);
+	cvShowImage("dst", output);
+	cvShowImage("dst", output2);
+	cvWaitKey(0);
+	cvDestroyWindow("src");
+	cvDestroyWindow("dst");
+	cvDestroyWindow("dst2");
+	cvReleaseImage(&input);
+	cvReleaseImage(&output);
+	cvReleaseImage(&output2);
+	return 0;
+}
+//************************************
+// Method:    Divide_HSV
+// FullName:  Divide_HSV
+// Access:    public 
+// Returns:   int
+// Qualifier:
+// Parameter: int argc
+// Parameter: char * * argv
+//************************************
+void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int h0)
+{
+	char * data = _src->imageData;
+	float * h, *s, *v;
+	for (int i = 0; i < _src->height; i++)
+	{
+		for (int j = 0; j < _src->width; j++)
+		{
+			h = (float*)((data)+i*_src->widthStep + j*(_src->nChannels*sizeof(float)));
+			//s = ((float*)data + i*_src->widthStep + j*_src->nChannels + 1);
+			//v = ((float*)data + i*_src->widthStep + j*_src->nChannels + 2);
+
+			if ((*h - h0 > 0 ? *h - h0 : h0 - *h) < threshold)
+			{
+				*(_binary->imageData + i*_binary->widthStep + j*_binary->nChannels) = 255;
+			}
+			else
+			{
+				*(_binary->imageData + i*_binary->widthStep + j*_binary->nChannels) = 0;
+			}
+		}
+	}
+}
+int h;
+int d;
+IplImage * src;
+IplImage * srcto32;
+IplImage * hsv;
+IplImage * binary2, *binary_coutour;
+CvMemStorage* storage;
+CvSeq * contour = 0;
+void update2()
+{
+	ColorThreshold(hsv, binary2, d, h);
+	cvErode(binary2, binary2);
+	cvErode(binary2, binary2);
+	cvDilate(binary2, binary2);
+	cvDilate(binary2, binary2);
+	cvFindContours(binary2, storage, &contour, sizeof(CvContour),CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+	cvZero(binary_coutour);
+	for (; contour != 0; contour = contour->h_next)
+	{
+		cvDrawContours(binary_coutour, contour, cvScalarAll(255), cvScalar(255,0,0), 1, 1, 8);
+	}
+	cvShowImage("output1", binary2);
+	cvShowImage("output2", binary_coutour);
+	waitKey(20);
+}
+void On_H(int pos)
+{
+	h = pos;
+	cout << "h:" << h << " " << d << endl;
+	update2();
+}
+void On_T(int pos)
+{
+	d = pos;
+	cout << "h:" << h << " " << d << endl;
+	update2();
+}
+int Divide_HSV(int argc, char ** argv)
+{
+	/*src = cvLoadImage("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\testimg3.png");
+	if (src == NULL)
+	{
+		cerr << "can not load image\n";
+		return -1;
+	}*/
+
+	CvCapture * cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
+	if (cap == NULL)
+	{
+		return -1;
+	}
+	
+	src = cvQueryFrame(cap);
+
+	srcto32 = cvCreateImage(cvGetSize(src), IPL_DEPTH_32F, 3);
+	hsv = cvCreateImage(cvGetSize(src), IPL_DEPTH_32F, 3);
+	binary2 = cvCreateImage(cvGetSize(src), IPL_DEPTH_8U, 1);
+	binary_coutour = cvCreateImage(cvGetSize(src), IPL_DEPTH_8U, 1);
+	cvNamedWindow("output1");
+	cvNamedWindow("output2");
+	storage = cvCreateMemStorage(0);
+
+	d = 16; h = 202;
+	while (src != NULL)
+	{
+		src = cvQueryFrame(cap);
+		cvConvertScale(src, srcto32, 1.0, 0);
+		cvCvtColor(srcto32, hsv, CV_BGR2HSV);
+		update2();
+
+	}
+
+	//cvCreateTrackbar("h", "output", &h, 360, On_H);
+	//cvCreateTrackbar("d", "output", &d, 360, On_T);
+	//d = 16; h = 202;
+	//update2();
+	cvDestroyWindow("output1");
+	cvDestroyWindow("output2");
+	cvReleaseImage(&srcto32);
+	cvReleaseImage(&hsv);
+	cvReleaseImage(&binary2);
+	return 0;
+}
+int Demo_SVM(int argc, char ** argv)
+{
+	CvSVM svm;
+	
 }
