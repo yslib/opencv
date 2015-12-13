@@ -24,6 +24,14 @@ int Demo_Camara(int argc, char ** argv);
 int Demo_Coutours(int argc,char ** argv);
 
 int Demo_ColorDetect(int argc, char ** argv);
+
 int Demo_Convolution(int argc, char ** argv);
+
 int Divide_HSV(int argc, char ** argv);
+
+int Demo_Hough(int argc, char ** argv);
+
+int Demo_Canny(int argc, char ** argv);
+
+int Demo_Elipse(int argc, char ** argv);
 #endif /* demolist_h */

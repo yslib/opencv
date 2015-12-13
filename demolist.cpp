@@ -13,6 +13,7 @@
 #include "demolist.h"
 #include <stdio.h>
 #include <iostream>
+#include <queue>
 #include <cstdlib>
 
 #ifdef __windows__
@@ -375,35 +376,10 @@ int Demo_Camara(int argc, char ** argv)
 {
 	return 0;
 }
-//int List_Dir(int argc, char ** argv)
-//{
-//	int ch;
-//	opterr = 0;
-//	string path = "C:\\";
-//	string fileType = "";
-//	while ((ch = getopt(argc, argv, "d:t:")) != -1)
-//	{
-//		switch (ch) {
-//		case 'd':
-//			path = optarg;        //the image or video path
-//			break;
-//		default:
-//			break;
-//		}
-//	}
-//	vector<string> filesName;
-//	GetFilesName(path, filesName);
-//	for (vector<string>::iterator itr = filesName.begin(); itr != filesName.end(); ++itr)
-//	{
-//		cout << *itr << endl;
-//	}
-//	return 0;
 int Kmeans(int argc, char ** argv)
 {
 	return 0;
 }
-
-
 //************************************
 // Method:    Demo_Coutours
 // FullName:  Demo_Coutours
@@ -413,52 +389,52 @@ int Kmeans(int argc, char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
-
-
+void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0, int g0, int r0);
 int Demo_Coutours(int argc, char ** argv)
 {
-	//CvCapture * cap;
-	//IplImage * input;
-	//cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
-	//if (cap == NULL)
-	//{
-	//	cerr << "can not load video\n";
-	//	return 1;
-	//}
-	//input = cvQueryFrame(cap);
-	//if (input == NULL)
-	//{
-	//	cerr << "can not load the first frame\n";
-	//	return -1;
-	//}
+	CvCapture * cap;
+	IplImage * input;
+	cap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
+	if (cap == NULL)
+	{
+		cerr << "can not load video\n";
+		return 1;
+	}
+	input = cvQueryFrame(cap);
+	if (input == NULL)
+	{
+		cerr << "can not load the first frame\n";
+		return -1;
+	}
 
-	//cvNamedWindow("output1");
-	//cvNamedWindow("output2");
+	cvNamedWindow("output1");
+	cvNamedWindow("output2");
 
-	//IplImage * gray, *binary;
+	IplImage * gray, *binary;
+	gray = cvCreateImage(cvGetSize(input), 8, 1);
+	binary = cvCreateImage(cvGetSize(input), 8, 1);
+	CvMemStorage* storage = cvCreateMemStorage(0);
+	CvSeq * contour = 0;
 
-	////CvMemStorage* storage = cvCreateMemStorage(0);
-	////CvSeq * contour = 0;
-
-	//int contours = 0;
-	//while (1)
-	//{
-	//	input = cvQueryFrame(cap);
-	//	//cvCvtColor(input, gray, CV_BGR2GRAY);
-	//	//cvThreshold(gray, binary, 128, 255, 0);
-	//	//contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
-	//	//for (; contour != 0; contour = contour->h_next)
-	//	//{
-	//	//	cvDrawContours(gray, contour, cvScalarAll(255), cvScalarAll(255), 1, 2, 8);
-	//	//}
-	//	ColorThreshold(input, binary, 200, 175,118,66);
-	//	waitKey(33);
-	//	cvShowImage("output1", binary);
-	//	cvShowImage("output2", input);
-	//}
-	//cvReleaseCapture(&cap);
-	//cvDestroyWindow("output1");
-	//cvDestroyWindow("output2");
+	int contours = 0;
+	while (1)
+	{
+		input = cvQueryFrame(cap);
+		cvCvtColor(input, gray, CV_BGR2GRAY);
+		cvThreshold(gray, binary, 128, 255, 0);
+		contours = cvFindContours(binary, storage, &contour, sizeof(CvContour), CV_RETR_LIST, CV_CHAIN_APPROX_NONE);
+		for (; contour != 0; contour = contour->h_next)
+		{
+			cvDrawContours(gray, contour, cvScalarAll(255), cvScalarAll(255), 1, 2, 8);
+		}
+		ColorThreshold(input, binary, 200, 175, 118, 66);
+		waitKey(33);
+		cvShowImage("output1", binary);
+		cvShowImage("output2", input);
+	}
+	cvReleaseCapture(&cap);
+	cvDestroyWindow("output1");
+	cvDestroyWindow("output2");
 
 	return 0;
 }
@@ -471,12 +447,12 @@ int Demo_Coutours(int argc, char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
-int R;
-int G;
-int B;
-int dist;
-int _b, _g, _r, _d;
-IplImage * input, *binary, *gray;
+int g_ColorDetect_R;
+int g_ColorDetect_G;
+int g_ColorDetect_B;
+int g_ColorDetect_dist;
+int g_ColorDetect_b, g_ColorDetect_g, g_ColorDetect_r, g_ColorDetect_d;
+IplImage * g_ColorDetect_input, *g_ColorDetect_binary, *g_ColorDetect_gray;
 
 inline int GetColorDistance(int b, int g, int r, int b0, int g0, int r0)
 {
@@ -506,54 +482,59 @@ void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int b0, 
 	}
 }
 
-void update()
+void g_ColorDetect_update()
 {
-	ColorThreshold(input, binary, dist, B, G, R);
-	cvShowImage("output", binary);
+	ColorThreshold(g_ColorDetect_input, g_ColorDetect_binary, g_ColorDetect_dist, g_ColorDetect_B, g_ColorDetect_G, g_ColorDetect_R);
+	cvShowImage("output", g_ColorDetect_binary);
 	cvWaitKey(0);
 }
 void OnTrackBar_Blue(int pos)
 {
-	B = pos;
-	update();
+	g_ColorDetect_B = pos;
+	g_ColorDetect_update();
 }
 void OnTrackBar_Green(int pos)
 {
-	G = pos;
-	update();
+	g_ColorDetect_G = pos;
+	g_ColorDetect_update();
 }
 void OnTrackBar_Red(int pos)
 {
-	R = pos;
-	update();
+	g_ColorDetect_R = pos;
+	g_ColorDetect_update();
 }
 void OnTrackBar_Distance(int pos)
 {
-	dist = pos;
-	update();
+	g_ColorDetect_dist = pos;
+	g_ColorDetect_update();
 }
 int Demo_ColorDetect(int argc, char ** argv)
 {
-	CvCapture * _cvCap = cvCaptureFromAVI("test1.avi");
-
-	gray = cvCreateImage(cvGetSize(input), input->depth, 1);
-	binary = cvCreateImage(cvGetSize(input), input->depth, CV_THRESH_BINARY);
-	cvNamedWindow("output");
-	cvCreateTrackbar("B", "output", &_b, 255, OnTrackBar_Blue);
-	cvCreateTrackbar("G", "output", &_g, 255, OnTrackBar_Green);
-	cvCreateTrackbar("R", "output", &_r, 255, OnTrackBar_Red);
-	cvCreateTrackbar("D", "output", &_d, 255, OnTrackBar_Distance);
-
-	input = cvQueryFrame(_cvCap);
-	while (input != NULL)
+	CvCapture * _cvCap = cvCaptureFromAVI("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\test1.avi");
+	if (_cvCap == NULL)
 	{
-		ColorThreshold(input, binary, dist, B, G, R);
-		cvShowImage("output", binary);
+		return -1;
+	}
+	g_ColorDetect_input = cvQueryFrame(_cvCap);
+	g_ColorDetect_gray = cvCreateImage(cvGetSize(g_ColorDetect_input), g_ColorDetect_input->depth, 1);
+	g_ColorDetect_binary = cvCreateImage(cvGetSize(g_ColorDetect_input), g_ColorDetect_input->depth, CV_THRESH_BINARY);
+
+	cvNamedWindow("output");
+	cvCreateTrackbar("B", "output", &g_ColorDetect_b, 255, OnTrackBar_Blue);
+	cvCreateTrackbar("G", "output", &g_ColorDetect_g, 255, OnTrackBar_Green);
+	cvCreateTrackbar("R", "output", &g_ColorDetect_r, 255, OnTrackBar_Red);
+	cvCreateTrackbar("D", "output", &g_ColorDetect_d, 255, OnTrackBar_Distance);
+
+
+	while (g_ColorDetect_input != NULL)
+	{
+		ColorThreshold(g_ColorDetect_input, g_ColorDetect_binary, g_ColorDetect_dist, g_ColorDetect_B, g_ColorDetect_G, g_ColorDetect_R);
+		cvShowImage("output", g_ColorDetect_binary);
 	}
 
-	cvReleaseImage(&input);
-	cvReleaseImage(&gray);
-	cvReleaseImage(&binary);
+	cvReleaseImage(&g_ColorDetect_input);
+	cvReleaseImage(&g_ColorDetect_gray);
+	cvReleaseImage(&g_ColorDetect_binary);
 	cvDestroyWindow("output");
 
 	return 0;
@@ -679,7 +660,7 @@ int Demo_Convolution(int argc, char ** argv)
 	IplImage * input = cvLoadImage("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\testimg.jpg");
 	IplImage * output = cvCreateImage(cvGetSize(input), 8, 3);
 	IplImage * output2 = cvCreateImage(cvGetSize(input), 8, 3);
-	unsigned char krnl[] = { 1,2,1,2,4,2,1,2,1 };
+	unsigned char krnl[] = { -1,0,1,-2,0,2,-1,0,1 };
 	Convolution((unsigned char *)input->imageData, (unsigned char *)output->imageData, input->width, input->height, 3, krnl, 9);
 	cvSmooth(input, output2, CV_GAUSSIAN, 3, 3, 0, 0);
 	cvNamedWindow("src");
@@ -706,6 +687,39 @@ int Demo_Convolution(int argc, char ** argv)
 // Parameter: int argc
 // Parameter: char * * argv
 //************************************
+void HSV2RGB(int h, double s, double v, unsigned char * r, unsigned char * g, unsigned char * b)
+{
+	double hi = (double)h / 60.0;
+	double f = hi - (int)hi;
+	double p = v*(1 - s);
+	double q = v*(1 - f*s);
+	double t = v*(1 - (1 - f)*s);
+	double R, G, B;
+	switch ((int)hi)
+	{
+	case 0:
+		R = v; G = t; B = p;
+		break;
+	case 1:
+		R = q; G = v; B = p;
+		break;
+	case 2:
+		R = p; G = v; B = t;
+		break;
+	case 3:
+		R = p; G = q; B = v;
+		break;
+	case 4:
+		R = t; G = p; B = v;
+		break;
+	case 5:
+		R = v; G = p; B = q;
+		break;
+	default:
+		break;
+	}
+	*r = R * 255; *g = G * 255; *b = B * 255;
+}
 void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int h0)
 {
 	char * data = _src->imageData;
@@ -729,42 +743,32 @@ void ColorThreshold(IplImage * _src, IplImage * _binary, int threshold, int h0)
 		}
 	}
 }
-int h;
-int d;
-IplImage * src;
-IplImage * srcto32;
-IplImage * hsv;
-IplImage * binary2, *binary_coutour;
-CvMemStorage* storage;
-CvSeq * contour = 0;
-void update2()
+int _HSV_h;
+int _HSV_d;
+IplImage * _HSV_src;
+IplImage * _HSV_srcto32;
+IplImage * _HSV_hsv;
+IplImage * _HSV_binary2, *_HSV_binary_coutour;
+CvMemStorage* _HSV_storage;
+CvSeq * _HSV_contour = 0;
+void _HSV_update2()
 {
-	ColorThreshold(hsv, binary2, d, h);
-	cvErode(binary2, binary2);
-	cvErode(binary2, binary2);
-	cvDilate(binary2, binary2);
-	cvDilate(binary2, binary2);
-	cvFindContours(binary2, storage, &contour, sizeof(CvContour),CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
-	cvZero(binary_coutour);
-	for (; contour != 0; contour = contour->h_next)
+
+	ColorThreshold(_HSV_hsv, _HSV_binary2, _HSV_d, _HSV_h);
+	cvErode(_HSV_binary2, _HSV_binary2);		//腐蚀
+	cvErode(_HSV_binary2, _HSV_binary2);
+	cvDilate(_HSV_binary2, _HSV_binary2);		//膨胀
+	cvDilate(_HSV_binary2, _HSV_binary2);
+	cvFindContours(_HSV_binary2, _HSV_storage, &_HSV_contour, sizeof(CvContour), CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+	cvZero(_HSV_binary_coutour);
+	//画轮廓
+	for (; _HSV_contour != 0; _HSV_contour = _HSV_contour->h_next)
 	{
-		cvDrawContours(binary_coutour, contour, cvScalarAll(255), cvScalar(255,0,0), 1, 1, 8);
+		cvDrawContours(_HSV_binary_coutour, _HSV_contour, cvScalarAll(255), cvScalar(255, 0, 0), 1, 1, 8);
 	}
-	cvShowImage("output1", binary2);
-	cvShowImage("output2", binary_coutour);
+	cvShowImage("output1", _HSV_binary2);
+	cvShowImage("output2", _HSV_binary_coutour);
 	waitKey(20);
-}
-void On_H(int pos)
-{
-	h = pos;
-	cout << "h:" << h << " " << d << endl;
-	update2();
-}
-void On_T(int pos)
-{
-	d = pos;
-	cout << "h:" << h << " " << d << endl;
-	update2();
 }
 int Divide_HSV(int argc, char ** argv)
 {
@@ -780,25 +784,26 @@ int Divide_HSV(int argc, char ** argv)
 	{
 		return -1;
 	}
-	
-	src = cvQueryFrame(cap);
 
-	srcto32 = cvCreateImage(cvGetSize(src), IPL_DEPTH_32F, 3);
-	hsv = cvCreateImage(cvGetSize(src), IPL_DEPTH_32F, 3);
-	binary2 = cvCreateImage(cvGetSize(src), IPL_DEPTH_8U, 1);
-	binary_coutour = cvCreateImage(cvGetSize(src), IPL_DEPTH_8U, 1);
+	_HSV_src = cvQueryFrame(cap);
+
+	_HSV_srcto32 = cvCreateImage(cvGetSize(_HSV_src), IPL_DEPTH_32F, 3);
+	_HSV_hsv = cvCreateImage(cvGetSize(_HSV_src), IPL_DEPTH_32F, 3);
+	_HSV_binary2 = cvCreateImage(cvGetSize(_HSV_src), IPL_DEPTH_8U, 1);
+	_HSV_binary_coutour = cvCreateImage(cvGetSize(_HSV_src), IPL_DEPTH_8U, 1);
 	cvNamedWindow("output1");
 	cvNamedWindow("output2");
-	storage = cvCreateMemStorage(0);
+	_HSV_storage = cvCreateMemStorage(0);
 
-	d = 16; h = 202;
-	while (src != NULL)
+	_HSV_d = 20; _HSV_h = 208;
+	unsigned char r, g, b;
+
+	while (_HSV_src != NULL)
 	{
-		src = cvQueryFrame(cap);
-		cvConvertScale(src, srcto32, 1.0, 0);
-		cvCvtColor(srcto32, hsv, CV_BGR2HSV);
-		update2();
-
+		_HSV_src = cvQueryFrame(cap);
+		cvConvertScale(_HSV_src, _HSV_srcto32, 1.0, 0);
+		cvCvtColor(_HSV_srcto32, _HSV_hsv, CV_BGR2HSV);
+		_HSV_update2();
 	}
 
 	//cvCreateTrackbar("h", "output", &h, 360, On_H);
@@ -807,13 +812,208 @@ int Divide_HSV(int argc, char ** argv)
 	//update2();
 	cvDestroyWindow("output1");
 	cvDestroyWindow("output2");
-	cvReleaseImage(&srcto32);
-	cvReleaseImage(&hsv);
-	cvReleaseImage(&binary2);
+	cvReleaseImage(&_HSV_srcto32);
+	cvReleaseImage(&_HSV_hsv);
+	cvReleaseImage(&_HSV_binary2);
 	return 0;
 }
 int Demo_SVM(int argc, char ** argv)
 {
-	CvSVM svm;
-	
+	return 0;
+}
+//
+//
+//Demo_Hough
+//
+//
+Mat g_Hough_input;
+Mat g_Hough_gray;
+vector<Vec3f> g_Hough_circles;
+int g_Hough_dp;
+int g_Hough_minDist;
+int g_Hough_cannyThreshold;
+int g_Hough_Threshold;
+void Hough_update()
+{
+	IplImage display;
+	HoughCircles(g_Hough_gray, g_Hough_circles,
+		CV_HOUGH_GRADIENT,
+		g_Hough_dp,
+		g_Hough_minDist,
+		g_Hough_cannyThreshold,
+		g_Hough_Threshold,
+		0,
+		0);
+	int count = 0;
+	Mat g_Hough_display = g_Hough_input.clone();
+	for (size_t i = 0; i < g_Hough_circles.size(); i++)
+	{
+		Point center(cvRound(g_Hough_circles[i][0]), cvRound(g_Hough_circles[i][1]));
+		int r = cvRound(g_Hough_circles[i][2]);
+		circle(g_Hough_input, center, 3, Scalar(0, 255, 0), -1, 8, 0);
+		circle(g_Hough_input, center, r, Scalar(255, 0, 0), 3, 8, 0);
+	}
+	//imshow("res", g_Hough_input);
+	display = g_Hough_display;
+	cvShowImage("res", &display);
+	waitKey(0);
+}
+void On_minDistChanged(int pos)
+{
+	g_Hough_minDist = pos;
+	Hough_update();
+}
+void On_dpChanged(int pos)
+{
+	g_Hough_dp = pos;
+	Hough_update();
+}
+void On_cannyThresholdChanged(int pos)
+{
+	g_Hough_cannyThreshold = pos;
+	Hough_update();
+}
+void On_ThresholdChanged(int pos)
+{
+	g_Hough_Threshold = pos;
+	Hough_update();
+}
+int Demo_Hough(int argc, char ** argv)
+{
+	g_Hough_input = imread("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\circle1.jpg");
+	if (g_Hough_input.empty() == true)
+	{
+		return -1;
+	}
+	cvtColor(g_Hough_input, g_Hough_gray, CV_BGR2GRAY);
+	GaussianBlur(g_Hough_gray, g_Hough_gray, Size(9, 9), 2, 2);
+	g_Hough_dp = 1;
+	g_Hough_minDist = 10;
+	g_Hough_cannyThreshold = 150;
+	g_Hough_Threshold = 50;
+	cvNamedWindow("res");
+	cvCreateTrackbar("dp", "res", &g_Hough_dp, 30, On_dpChanged);
+	cvCreateTrackbar("minDist", "res", &g_Hough_minDist, 200, On_minDistChanged);
+	cvCreateTrackbar("canny", "res", &g_Hough_cannyThreshold, 255, On_cannyThresholdChanged);
+	cvCreateTrackbar("thres", "res", &g_Hough_Threshold, 300, On_ThresholdChanged);
+	Hough_update();
+	cvvDestroyWindow("res");
+	return 0;
+}
+
+//
+//Canny
+//
+//
+Mat g_Canny_input;
+Mat g_Canny_output;
+int g_Canny_threshold1;
+int g_Canny_threshold2;
+int g_Canny_apertureSize = 3;
+void Canny_update()
+{
+	Canny(g_Canny_input, g_Canny_output, g_Canny_threshold1, g_Canny_threshold2, g_Canny_apertureSize, false);
+	imshow("res", g_Canny_output);
+	cvWaitKey(0);
+}
+void On_threshold1Changed(int pos, void *)
+{
+	g_Canny_threshold1 = pos;
+	Canny_update();
+}
+void On_threshold2Changed(int pos, void *)
+{
+	g_Canny_threshold2 = pos;
+	Canny_update();
+}
+void On_apertureSizeChanged(int pos, void *)
+{
+	g_Canny_apertureSize = pos;
+	Canny_update();
+}
+int Demo_Canny(int argc, char ** argv)
+{
+	g_Canny_input = imread("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\testimg.jpg");
+	if (g_Canny_input.empty() == true)
+	{
+		return -1;
+	}
+	g_Canny_threshold1 = 50;
+	g_Canny_threshold2 = 100;
+	g_Canny_apertureSize = 3;
+	namedWindow("res");
+	createTrackbar("thres1", "res", &g_Canny_threshold1, 255, On_threshold1Changed);
+	createTrackbar("thres2", "res", &g_Canny_threshold2, 255, On_threshold2Changed);
+	createTrackbar("apertureSize", "res", &g_Canny_apertureSize, 5, On_apertureSizeChanged);
+
+	Canny_update();
+	return 0;
+}
+//
+//
+// Demo_Elipse
+//
+int Demo_Elipse(int argc, char ** argv)
+{
+	IplImage * input, *gray, *binary, *img_coutours;
+	input = cvLoadImage("C:\\Users\\yangs\\Documents\\Visual Studio 2015\\Projects\\opencvfrmwrk\\Debug\\ellipsetest.png");
+	gray = cvCreateImage(cvGetSize(input), input->depth, 1);
+	binary = cvCreateImage(cvGetSize(input), input->depth, 1);
+	img_coutours = cvCreateImage(cvGetSize(input), input->depth, 3);
+	cvZero(img_coutours);
+	CvMemStorage * storage = cvCreateMemStorage(0);
+	CvSeq * seq = NULL;
+
+	int cnt = cvFindContours(binary, storage, &seq, sizeof(CvContour), 2);
+	cvCvtColor(input, gray, CV_BGR2GRAY);
+
+	//cvThreshold(gray, binary, 0, 255, CV_THRESH_BINARY);
+
+	cvCanny(gray, binary, 50, 150);
+
+	cvFindContours(binary, storage, &seq, sizeof(CvContour),
+		CV_RETR_TREE,		//以线性表形式存储
+		CV_CHAIN_APPROX_NONE);	//
+
+	//层序遍历画轮廓
+
+	queue<CvSeq *> que;
+	for (CvSeq * sibling = seq; sibling != NULL; sibling = sibling->h_next)
+	{
+		que.push(sibling);
+	}
+	while (que.empty() == false)
+	{
+		CvSeq * s = que.front();
+		//draw contours
+		cvDrawContours(img_coutours, s,
+			CvScalar(255, 0, 0),
+			CvScalar(0, 255, 0),
+			0,					//max_level
+			1,
+			8);
+		//fit ellipse
+		CvBox2D b = cvFitEllipse2(s);
+		b.angle = 90 - b.angle;
+		printf("-----------------\narea:%f\n", cvContourArea(s));
+		printf("arclenth:%f\n", cvArcLength(s));
+		printf("enter of ellipse:(%f %f)\n", b.center.x, b.center.y);
+		printf("width and height:%d %d\n------------------\n", b.size.width, b.size.height);
+		
+		que.pop();
+		cvShowImage("coutours", img_coutours);
+		cvWaitKey(0);
+		for (CvSeq * child = s->v_next; child != NULL; child = child->h_next)
+		{
+			que.push(child);
+		}
+	}
+	cvNamedWindow("res");
+	cvNamedWindow("coutours");
+	cvShowImage("res", input);
+	cvShowImage("coutours", img_coutours);
+	cvWaitKey(0);
+	cvDestroyWindow("res");
+	cvDestroyWindow("coutours");
+	return 0;
 }

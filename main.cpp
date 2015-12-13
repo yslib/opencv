@@ -27,5 +27,8 @@ int main(int argc, const char * argv[])
 	MenuConfig("6", "colordetect", Demo_ColorDetect);
 	MenuConfig("7", "Convolution", Demo_Convolution);
 	MenuConfig("8", "HSV", Divide_HSV);
+	MenuConfig("9", "hough", Demo_Hough);
+	MenuConfig("10", "canny", Demo_Canny);
+	MenuConfig("11", "Elipse", Demo_Elipse);
     ExecuteMenu();
 }
